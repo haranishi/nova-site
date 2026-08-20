@@ -1,0 +1,551 @@
+@import "tailwindcss";
+
+/* ── Design tokens (03-DESIGN-SPEC §トークン) ───────────────────────────── */
+@theme {
+  --color-bg: #050507;
+  --color-bg2: #08090e;
+  --color-fg: #f4f6f8;
+  --color-body: #b9c0cc;
+  /* smallest supporting text sits here (8.0:1 on --bg) — used for 13px labels */
+  --color-mute: #9aa3b2;
+  --color-dim: #848c9c;
+  --color-faint: #7b8294;
+  --color-accent: #7c8cff;
+  --color-accent-soft: #a5adff;
+  --color-hairline: rgb(255 255 255 / 0.08);
+
+  --font-display: var(--font-space-grotesk), "Space Grotesk", ui-sans-serif,
+    system-ui, sans-serif;
+  --font-sans: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  --ease-quart: cubic-bezier(0.165, 0.84, 0.44, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: auto;
+  }
+
+  /* every section clears the 64px fixed nav when it is anchored to */
+  [data-section] {
+    scroll-margin-top: 88px;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  ::selection {
+    background: rgb(124 140 255 / 0.28);
+    color: var(--color-fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent-soft);
+    outline-offset: 3px;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    color: var(--color-fg);
+    text-wrap: balance;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  /* Lenis (equivalent of lenis/dist/lenis.css — no extra import needed) */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+  .lenis.lenis-smooth [data-lenis-prevent] {
+    overscroll-behavior: contain;
+  }
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+}
+
+/* ── Primitives ─────────────────────────────────────────────────────────── */
+@layer components {
+  .nova-shell {
+    margin-inline: auto;
+    width: 100%;
+    max-width: 1200px;
+    padding-inline: 24px;
+  }
+  @media (min-width: 768px) {
+    .nova-shell {
+      padding-inline: 40px;
+    }
+  }
+
+  /* mono label — 11px uppercase, tracking .28em */
+  .nova-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+  }
+
+  .nova-h2 {
+    font-family: var(--font-display);
+    font-size: clamp(40px, 6vw, 72px);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.02;
+    color: var(--color-fg);
+  }
+
+  .nova-lead {
+    font-size: clamp(17px, 1.4vw, 20px);
+    line-height: 1.6;
+    color: var(--color-body);
+    max-width: 44ch;
+    /* keeps the last line from becoming a single orphan word */
+    text-wrap: pretty;
+  }
+  /*
+   * On a phone the same paragraph is four lines in a 340px measure, and `pretty`
+   * only protects the last one — loop 2's Reveal step 2 still had a line ending
+   * 45px short of the others. `balance` evens the whole rag at these line
+   * counts, which is exactly the case it was designed for (WS-B2).
+   */
+  @media (max-width: 767px) {
+    .nova-lead {
+      text-wrap: balance;
+    }
+  }
+
+  /*
+   * Local scrim for copy that can pass over the WebGL layer (WS2-1).
+   *
+   * A box scrim was tried first and rejected: over the ambient glow it reads as
+   * a grey rectangle, and its vignette tail leaves the outer glyphs uncovered.
+   * A glyph-level shadow instead carries the darkness exactly where it is
+   * needed — invisible on the #050507 ground, ≈16:1 local contrast where a
+   * blown-out specular passes behind the type — and can never draw an edge.
+   * text-shadow inherits, so one class on a block covers every line inside it.
+   */
+  .nova-scrim {
+    text-shadow:
+      0 0 14px rgb(5 5 7 / 0.95),
+      0 0 32px rgb(5 5 7 / 0.85),
+      0 0 68px rgb(5 5 7 / 0.6);
+  }
+  /* lighter mix where the 3D never gets closer than a glow */
+  .nova-scrim-soft {
+    text-shadow:
+      0 0 12px rgb(5 5 7 / 0.9),
+      0 0 28px rgb(5 5 7 / 0.7);
+  }
+  /* gradient-filled glyphs are transparent: a shadow would show *through* them */
+  .nova-scrim .nova-ink,
+  .nova-scrim-soft .nova-ink,
+  .nova-ink {
+    text-shadow: none;
+  }
+
+  /*
+   * One selected-state token for every "pick one" control on the page
+   * (Everyday tabs · Experience chips · Technology list row). Loop 2 grew three
+   * dialects — accent border here, plain fill there, colour-only somewhere else
+   * — so the same idea read as three. Fill, ink and edge are fixed here; each
+   * component adds exactly one accent detail (dot / underline / number).
+   */
+  .nova-pick {
+    background-color: rgb(255 255 255 / 0.08);
+    border-color: rgb(255 255 255 / 0.2);
+    color: var(--color-fg);
+  }
+
+  /* secondary action: reads as a control, never competes with the white pill */
+  .nova-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--color-hairline);
+    color: var(--color-body);
+    font-weight: 500;
+    transition:
+      color 200ms var(--ease-quart),
+      background-color 200ms var(--ease-quart),
+      border-color 200ms var(--ease-quart);
+  }
+  .nova-ghost:hover {
+    color: var(--color-fg);
+    background-color: rgb(255 255 255 / 0.06);
+    border-color: rgb(255 255 255 / 0.18);
+  }
+
+  /*
+   * 45px, not 44: the spec floor is 44 and loop 2 measured 43.x on rows that
+   * were authored at exactly 44 (fractional layout + rounding). One px of
+   * headroom keeps the measurement honest.
+   */
+  .nova-tap {
+    min-height: 45px;
+  }
+
+  .nova-skip {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 200;
+    display: inline-flex;
+    align-items: center;
+    min-height: 45px;
+    transform: translateY(-160%);
+    background: var(--color-fg);
+    color: var(--color-bg);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px 20px;
+    border-radius: 999px;
+    transition: transform 220ms var(--ease-quart);
+  }
+  .nova-skip:focus {
+    transform: translateY(0);
+  }
+
+  /* Always-on ambient glow so the WebGL layer never "pops in" */
+  .nova-ambient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        44vw 44vw at 50% 42%,
+        rgb(124 140 255 / 0.1),
+        transparent 68%
+      ),
+      radial-gradient(
+        70vw 50vw at 50% 108%,
+        rgb(124 140 255 / 0.06),
+        transparent 70%
+      );
+  }
+
+  /* WebGL-less fallback: silhouette + halo, keeps the composition intact */
+  .nova-fallback {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    display: grid;
+    place-items: center;
+  }
+  .nova-fallback-body {
+    width: min(46vmin, 340px);
+    aspect-ratio: 1 / 0.46;
+    border-radius: 50%;
+    background:
+      radial-gradient(
+        60% 120% at 50% 8%,
+        rgb(255 255 255 / 0.12),
+        transparent 62%
+      ),
+      linear-gradient(180deg, #14161c 0%, #0a0b0f 58%, #05060a 100%);
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 0.07),
+      0 40px 120px -30px rgb(124 140 255 / 0.35);
+    position: relative;
+  }
+  .nova-fallback-ring {
+    position: absolute;
+    left: 50%;
+    top: 8%;
+    width: 62%;
+    aspect-ratio: 1 / 0.34;
+    translate: -50% 0;
+    border-radius: 50%;
+    border: 1.5px solid rgb(165 173 255 / 0.9);
+    box-shadow:
+      0 0 18px rgb(124 140 255 / 0.75),
+      inset 0 0 12px rgb(124 140 255 / 0.4);
+  }
+}
+
+/* Wordmark ink: white → grey down the glyph.
+   The gradient lives on each letter, not the h1 — a transformed descendant
+   does not contribute to an ancestor's background-clip:text region, so the
+   masked/animated letters would clip the fill away to nothing. */
+.nova-ink {
+  background-image: linear-gradient(180deg, #ffffff 4%, #8b93a5 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .nova-ink {
+    color: var(--color-fg);
+  }
+}
+
+/* ── Motion primitives ──────────────────────────────────────────────────── */
+/* Mask reveal: children rise out of a clipped line */
+.nova-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.16em;
+  margin-bottom: -0.16em;
+}
+.nova-rise {
+  display: inline-block;
+  transform: translateY(110%);
+  animation: nova-rise 600ms var(--ease-quart) forwards;
+  animation-delay: var(--d, 0ms);
+  will-change: transform;
+}
+@keyframes nova-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.nova-fade {
+  opacity: 0;
+  animation: nova-fade 700ms var(--ease-quart) forwards;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes nova-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+/* Hero scroll cue: 1×56px line that stretches then retracts */
+@keyframes nova-cue {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  42% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  58% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+.nova-cue-line {
+  animation: nova-cue 2200ms var(--ease-quart) infinite;
+}
+
+/* Orb: breathing ring while listening */
+@keyframes nova-breathe {
+  0%,
+  100% {
+    transform: scale(0.86);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.06);
+    opacity: 0.95;
+  }
+}
+.nova-breathe {
+  animation: nova-breathe 3200ms var(--ease-quart) infinite;
+}
+
+/* Orb: 5-bar equalizer while speaking */
+@keyframes nova-eq {
+  0%,
+  100% {
+    transform: scaleY(0.22);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.nova-eq-bar {
+  transform-origin: center;
+  animation: nova-eq 760ms ease-in-out infinite;
+  animation-delay: var(--d, 0ms);
+}
+
+@keyframes nova-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.nova-caret {
+  animation: nova-blink 1000ms steps(1) infinite;
+}
+
+/* Everyday: 5s autoplay progress under the active tab */
+@keyframes nova-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.nova-progress {
+  transform-origin: left;
+  animation: nova-progress 5000ms linear forwards;
+}
+
+/* CTA: shine sweep on hover */
+.nova-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.nova-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    100deg,
+    transparent 28%,
+    rgb(255 255 255 / 0.55) 48%,
+    transparent 68%
+  );
+  translate: -130% 0;
+  pointer-events: none;
+}
+.nova-shine:hover::after,
+.nova-shine:focus-visible::after {
+  animation: nova-sweep 720ms var(--ease-quart);
+}
+@keyframes nova-sweep {
+  to {
+    translate: 130% 0;
+  }
+}
+
+/* THINKING: three dots before the reply starts typing */
+@keyframes nova-think {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+.nova-think-dot {
+  animation: nova-think 1080ms ease-in-out infinite;
+  animation-delay: var(--d, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nova-rise {
+    transform: none;
+    animation: none;
+  }
+  .nova-fade {
+    opacity: 1;
+    animation: none;
+  }
+  .nova-cue-line,
+  .nova-breathe,
+  .nova-eq-bar,
+  .nova-caret,
+  .nova-progress,
+  .nova-think-dot,
+  .nova-shine::after {
+    animation: none !important;
+  }
+  .nova-eq-bar {
+    transform: scaleY(0.6);
+  }
+  .nova-progress {
+    transform: scaleX(1);
+  }
+}
+
+/* ── Deterministic capture mode (?freeze=1) ─────────────────────────────────
+   Same freezes as reduced-motion for anything time-driven, without touching
+   the scroll-driven poses — screenshots of the same scroll position must be
+   pixel-comparable between runs. */
+html[data-freeze="true"] .nova-rise {
+  transform: none;
+  animation: none;
+}
+html[data-freeze="true"] .nova-fade {
+  opacity: 1;
+  animation: none;
+}
+html[data-freeze="true"] .nova-cue-line,
+html[data-freeze="true"] .nova-breathe,
+html[data-freeze="true"] .nova-eq-bar,
+html[data-freeze="true"] .nova-caret,
+html[data-freeze="true"] .nova-progress,
+html[data-freeze="true"] .nova-think-dot,
+html[data-freeze="true"] .nova-shine::after {
+  animation: none !important;
+}
+html[data-freeze="true"] .nova-eq-bar {
+  transform: scaleY(0.6);
+}
+html[data-freeze="true"] .nova-progress {
+  transform: scaleX(1);
+}
+
+/* ── OG capture mode (?og=1) ────────────────────────────────────────────────
+   A purpose-built 1200×630 frame: no chrome, no scroll cue, no buttons (a
+   share card is not a page you can press), a wordmark scaled for the card, and
+   the whole device silhouette clear of the bottom edge — loop 2 sliced it off
+   at the crop line. The definition line becomes the card's caption strip. */
+html[data-og="true"] [data-nav],
+html[data-og="true"] [data-hero-cue],
+html[data-og="true"] [data-hero-cta],
+html[data-og="true"] .nova-skip {
+  display: none !important;
+}
+html[data-og="true"] [data-section="hero"] {
+  padding-top: 3vh;
+}
+html[data-og="true"] h1 {
+  font-size: 128px !important;
+}
+html[data-og="true"] [data-hero-definition] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 30px;
+  margin-top: 0;
+  max-width: none;
+  text-align: center;
+  font-size: 17px;
+  color: var(--color-body);
+}

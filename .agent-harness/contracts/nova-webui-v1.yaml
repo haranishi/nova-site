@@ -1,0 +1,29 @@
+# NOVA ブランドサイト — Web制作ハーネス契約（正本: Obsidian「Web制作ハーネス契約テンプレート」「開発ワークフロー・ハーネス契約テンプレート」）
+meta: {name: "nova-webui", version: "1.0.0", status: active, owner: "本人", created: 2026-08-17}
+goal: >
+  架空AIデバイス「NOVA」の公式ブランドサイト（Next.js + R3F）。9セクション・スクロール連動3D・
+  疑似AI会話・分解ビュー・3幅レスポンシブが動き、Playwrightテスト全パス＋採点16/20以上で完了。
+non_goals: [実AI接続, 決済, CMS, 多言語, デプロイ]
+experiment: >
+  ハーネス効果の比較実験。周1完了時点のコードを ~/Projects/nova-site-loop1 に複製保存（=1回実行版）。
+  周2完了時点を nova-site-loop2 に保存。周3完了が最終形（=ハーネスあり版）。
+roles:
+  - {stage: design,    runner: "メインループ(Opus)", deliverable: "docs/01〜07 設計文書一式・採点表確定"}
+  - {stage: implement, runner: "Opusサブエージェント(workspace-write)", deliverable: "コード＋テスト＋3幅スクショ",
+     denied: ["git commit/push", "~/Projects/nova-site 外への書き込み", "デプロイ"]}
+  - {stage: machine_verify, runner: "決定的ツール", deliverable: "typecheck・build・Playwright全パス（テスト無し/不合格=採点に進まず差し戻し）"}
+  - {stage: visual_eval, runner: "Opus別セッション（スクショのみ・コード非開示・毎回ゼロベース）", deliverable: "採点表10項目+全指摘"}
+  - {stage: code_review, runner: "Codex exec (read-only) ※周3で1回", deliverable: "コードレビュー指摘一覧"}
+  - {stage: human_gate, runner: "本人", approves: ["公開", "commit/push", "スコープ変更"]}
+scoring: "10項目×0〜2点。合格=16点以上かつ0点なし。全項目に根拠（幅・画面・場所）1行必須"
+loop_control:
+  retry: "不合格はTOP5のみ実装へ差し戻し（TOP5に絞るのは設計側。差し戻し前に§4-1撮影疑いの裏取り必須）"
+  budgets: {max_cycles: 3}
+  stop: "同一指摘2周連続で即停止=NEEDS_HUMAN。3周未達もNEEDS_HUMAN"
+terminal_states: [SUCCESS, NEEDS_HUMAN, FAILED]
+invariants:
+  - "完了判定は証拠（テスト出力・実ファイル・スクショ）。自己申告は完了にしない"
+  - "設計と実装、実装と評価を同一セッションに兼務させない"
+  - "commit/push/公開は人間のみ（Claudeはgit操作をしない。スナップショットはrsync）"
+  - "工程間の受け渡しは自己完結文書（docs/・harness/eval/）で行う"
+receipt: ".agent-harness/runs/loopN.md に各周の行動・証拠・残件を記録"
