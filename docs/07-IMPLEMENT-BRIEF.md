@@ -1,6 +1,6 @@
 # 実装ブリーフ（implement工程・自己完結）
 
-あなたは NOVA ブランドサイトの実装担当。**このリポジトリ（/Users/hara/Projects/nova-site）内のみ**書き込み可。
+あなたは NOVA ブランドサイトの実装担当。**このリポジトリ（/path/to/nova-site）内のみ**書き込み可。
 
 ## 最初に読む（この順）
 1. `docs/01-REQUIREMENTS.md`（成功条件・バジェット）
